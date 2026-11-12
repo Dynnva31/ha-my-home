@@ -1,0 +1,76 @@
+notify:
+  fields:
+    message:
+      required: true
+      selector:
+        text:
+          multiline: true
+    title:
+      selector:
+        text:
+    subtitle:
+      selector:
+        text:
+    person:
+      selector:
+        entity:
+          domain: person
+          multiple: true
+    open:
+      example: "shopping"
+      selector:
+        text:
+    thread:
+      selector:
+        text:
+    tag:
+      selector:
+        text:
+    level:
+      default: active
+      selector:
+        select:
+          options: ["passive", "active", "time-sensitive"]
+    sound:
+      default: true
+      selector:
+        boolean:
+    actions:
+      selector:
+        object:
+register:
+  fields:
+    device_id:
+      required: true
+      selector:
+        text:
+    token:
+      required: true
+      selector:
+        text:
+    key:
+      required: true
+      selector:
+        text:
+    sandbox:
+      selector:
+        boolean:
+    name:
+      selector:
+        text:
+unregister:
+  fields:
+    device_id:
+      required: true
+      selector:
+        text:
+action:
+  fields:
+    action:
+      required: true
+      selector:
+        text:
+    tag:
+      selector:
+        text:
+devices:

@@ -1,0 +1,126 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "My Home",
+        "description": "Avisos cifrados para la app My Home. La clave APNs (.p8) se queda en Home Assistant.",
+        "data": {
+          "key_path": "Archivo de la clave .p8",
+          "key_id": "Key ID",
+          "team_id": "Team ID",
+          "topic": "Bundle ID"
+        }
+      }
+    },
+    "error": {
+      "key_missing": "No encuentro el archivo .p8 en esa ruta.",
+      "key_invalid": "Ese archivo no es una clave .p8 válida."
+    },
+    "abort": {
+      "already_configured": "Ya está configurado.",
+      "single_instance_allowed": "Ya está configurado."
+    }
+  },
+  "services": {
+    "notify": {
+      "name": "Enviar aviso",
+      "description": "Aviso cifrado de extremo a extremo a la app My Home.",
+      "fields": {
+        "message": {
+          "name": "Mensaje",
+          "description": "Texto del aviso."
+        },
+        "title": {
+          "name": "Título",
+          "description": "Título opcional."
+        },
+        "subtitle": {
+          "name": "Subtítulo",
+          "description": "Subtítulo opcional."
+        },
+        "person": {
+          "name": "Personas",
+          "description": "A quién (por defecto, a todos)."
+        },
+        "open": {
+          "name": "Abrir",
+          "description": "Pantalla de la app al tocarlo (shopping, people, today, light:..., entity:...)."
+        },
+        "thread": {
+          "name": "Grupo",
+          "description": "Agrupa avisos del mismo tipo."
+        },
+        "tag": {
+          "name": "Etiqueta",
+          "description": "Un aviso nuevo con la misma etiqueta sustituye al anterior."
+        },
+        "level": {
+          "name": "Importancia",
+          "description": "passive, active o time-sensitive."
+        },
+        "sound": {
+          "name": "Sonido",
+          "description": "Con sonido."
+        },
+        "actions": {
+          "name": "Botones",
+          "description": "Hasta 4: action, title, destructive, auth, foreground."
+        }
+      }
+    },
+    "register": {
+      "name": "Registrar iPhone",
+      "description": "Lo usa la app My Home.",
+      "fields": {
+        "device_id": {
+          "name": "device_id",
+          "description": "device_id"
+        },
+        "token": {
+          "name": "token",
+          "description": "token"
+        },
+        "key": {
+          "name": "key",
+          "description": "key"
+        },
+        "sandbox": {
+          "name": "sandbox",
+          "description": "sandbox"
+        },
+        "name": {
+          "name": "name",
+          "description": "name"
+        }
+      }
+    },
+    "unregister": {
+      "name": "Olvidar iPhone",
+      "description": "Lo usa la app My Home.",
+      "fields": {
+        "device_id": {
+          "name": "device_id",
+          "description": "device_id"
+        }
+      }
+    },
+    "action": {
+      "name": "Botón pulsado",
+      "description": "Lo usa la app My Home al tocar un botón de un aviso.",
+      "fields": {
+        "action": {
+          "name": "action",
+          "description": "action"
+        },
+        "tag": {
+          "name": "tag",
+          "description": "tag"
+        }
+      }
+    },
+    "devices": {
+      "name": "iPhones registrados",
+      "description": "Lista los iPhones que reciben avisos."
+    }
+  }
+}

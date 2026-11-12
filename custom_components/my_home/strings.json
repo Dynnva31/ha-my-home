@@ -1,0 +1,126 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "My Home",
+        "description": "Encrypted notices for the My Home app. The APNs key (.p8) stays in Home Assistant.",
+        "data": {
+          "key_path": ".p8 key file",
+          "key_id": "Key ID",
+          "team_id": "Team ID",
+          "topic": "Bundle ID"
+        }
+      }
+    },
+    "error": {
+      "key_missing": "No .p8 file at that path.",
+      "key_invalid": "That file is not a valid .p8 key."
+    },
+    "abort": {
+      "already_configured": "Already configured.",
+      "single_instance_allowed": "Already configured."
+    }
+  },
+  "services": {
+    "notify": {
+      "name": "Send notice",
+      "description": "End-to-end encrypted notice to the My Home app.",
+      "fields": {
+        "message": {
+          "name": "Message",
+          "description": "Notice text."
+        },
+        "title": {
+          "name": "Title",
+          "description": "Optional title."
+        },
+        "subtitle": {
+          "name": "Subtitle",
+          "description": "Optional subtitle."
+        },
+        "person": {
+          "name": "People",
+          "description": "Who gets it (default: everyone)."
+        },
+        "open": {
+          "name": "Open",
+          "description": "App screen to open on tap."
+        },
+        "thread": {
+          "name": "Group",
+          "description": "Groups notices of the same kind."
+        },
+        "tag": {
+          "name": "Tag",
+          "description": "A new notice with the same tag replaces the previous one."
+        },
+        "level": {
+          "name": "Level",
+          "description": "passive, active or time-sensitive."
+        },
+        "sound": {
+          "name": "Sound",
+          "description": "Play a sound."
+        },
+        "actions": {
+          "name": "Buttons",
+          "description": "Up to 4: action, title, destructive, auth, foreground."
+        }
+      }
+    },
+    "register": {
+      "name": "Register iPhone",
+      "description": "Used by the My Home app.",
+      "fields": {
+        "device_id": {
+          "name": "device_id",
+          "description": "device_id"
+        },
+        "token": {
+          "name": "token",
+          "description": "token"
+        },
+        "key": {
+          "name": "key",
+          "description": "key"
+        },
+        "sandbox": {
+          "name": "sandbox",
+          "description": "sandbox"
+        },
+        "name": {
+          "name": "name",
+          "description": "name"
+        }
+      }
+    },
+    "unregister": {
+      "name": "Forget iPhone",
+      "description": "Used by the My Home app.",
+      "fields": {
+        "device_id": {
+          "name": "device_id",
+          "description": "device_id"
+        }
+      }
+    },
+    "action": {
+      "name": "Button pressed",
+      "description": "Used by the My Home app when a notice button is tapped.",
+      "fields": {
+        "action": {
+          "name": "action",
+          "description": "action"
+        },
+        "tag": {
+          "name": "tag",
+          "description": "tag"
+        }
+      }
+    },
+    "devices": {
+      "name": "Registered iPhones",
+      "description": "Lists the iPhones that get notices."
+    }
+  }
+}
