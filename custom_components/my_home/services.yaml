@@ -74,3 +74,63 @@ action:
       selector:
         text:
 devices:
+activity_register:
+  fields:
+    device_id:
+      required: true
+      selector:
+        text:
+    start_token:
+      selector:
+        text:
+    kind:
+      selector:
+        text:
+    token:
+      selector:
+        text:
+live_activity:
+  fields:
+    person:
+      selector:
+        entity:
+          domain: person
+          multiple: true
+    kind:
+      required: true
+      example: "timer"
+      selector:
+        text:
+    action:
+      default: start
+      selector:
+        select:
+          options: ["start", "update", "end"]
+    title:
+      selector:
+        text:
+    detail:
+      selector:
+        text:
+    ends:
+      selector:
+        datetime:
+    icon:
+      example: "timer"
+      selector:
+        text:
+    tint:
+      example: "#FF9F0A"
+      selector:
+        text:
+    sound:
+      default: false
+      selector:
+        boolean:
+    dismiss:
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 14400
+          unit_of_measurement: s

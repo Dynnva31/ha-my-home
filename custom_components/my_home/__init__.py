@@ -85,6 +85,34 @@ ACTION_SERVICE_SCHEMA = vol.Schema(
 )
 
 
+ACTIVITY_REGISTER_SCHEMA = vol.Schema(
+    {
+        vol.Required("device_id"): vol.All(cv.string, vol.Length(min=8, max=64)),
+        vol.Optional("start_token"): vol.Match(r"^[0-9a-fA-F]{32,400}$"),
+        vol.Optional("kind"): vol.All(cv.string, vol.Length(max=40)),
+        vol.Optional("token"): vol.Match(r"^[0-9a-fA-F]{32,400}$"),
+    }
+)
+
+LIVE_ACTIVITY_SCHEMA = vol.Schema(
+    {
+        vol.Optional("person"): cv.entity_ids,
+        vol.Required("kind"): vol.All(cv.string, vol.Length(max=40)),
+        vol.Optional("action", default="start"): vol.In(["start", "update", "end"]),
+        vol.Optional("title", default=""): cv.string,
+        vol.Optional("detail"): cv.string,
+        vol.Optional("ends"): cv.datetime,
+        vol.Optional("icon", default="house.fill"): cv.string,
+        vol.Optional("tint"): cv.string,
+        vol.Optional("sound", default=False): cv.boolean,
+        vol.Optional("dismiss", default=0): vol.All(vol.Coerce(int), vol.Range(min=0, max=4 * 3600)),
+    }
+)
+
+# ActivityKit decodes dates the Swift way: seconds since 2001-01-01.
+APPLE_EPOCH = 978307200
+
+
 class Hub:
     """Registered phones and the APNs client."""
 
@@ -136,7 +164,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         old = hub.devices.get(dev_id)
         if old and old.get("user_id") != user_id and not await _is_admin(hass, user_id):
             raise Unauthorized(context=call.context)
+        keep = {k: old[k] for k in ("start_token", "activity_tokens") if old and k in old}
         hub.devices[dev_id] = {
+            **keep,
             "token": call.data["token"].lower(),
             "key": call.data["key"],
             "sandbox": call.data["sandbox"],
@@ -211,6 +241,78 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             await hub.save()
         return {"sent": sent, "failed": failed}
 
+    def _targets(person: list[str] | None) -> list[tuple[str, dict[str, Any]]]:
+        targets = list(hub.devices.items())
+        if person:
+            users = set()
+            for pid in person:
+                st = hass.states.get(pid)
+                if st and st.attributes.get("user_id"):
+                    users.add(st.attributes["user_id"])
+            targets = [(k, v) for k, v in targets if v.get("user_id") in users]
+        return targets
+
+    async def activity_register(call: ServiceCall) -> None:
+        """The app hands over its Live Activity tokens (start, and one per running activity)."""
+        dev = hub.devices.get(call.data["device_id"])
+        if not dev:
+            raise ServiceValidationError("Unknown phone")
+        if dev.get("user_id") != call.context.user_id and not await _is_admin(hass, call.context.user_id):
+            raise Unauthorized(context=call.context)
+        if call.data.get("start_token"):
+            dev["start_token"] = call.data["start_token"].lower()
+        if call.data.get("kind") and call.data.get("token"):
+            dev.setdefault("activity_tokens", {})[call.data["kind"]] = call.data["token"].lower()
+        await hub.save()
+
+    async def live_activity(call: ServiceCall) -> ServiceResponse:
+        """Start, update or end a Live Activity (lock screen, Dynamic Island, CarPlay).
+
+        Unlike notices these cannot be end-to-end encrypted (iOS draws them
+        without running app code), so keep them to plain, non-private words.
+        """
+        d = call.data
+        now = int(time.time())
+        state: dict[str, Any] = {"title": d["title"]}
+        if d.get("detail"):
+            state["detail"] = d["detail"]
+        if d.get("tint"):
+            state["tint"] = d["tint"]
+        if d.get("ends"):
+            state["ends"] = d["ends"].timestamp() - APPLE_EPOCH
+        aps: dict[str, Any] = {"timestamp": now, "event": d["action"], "content-state": state}
+        if d["action"] == "start":
+            aps["attributes-type"] = "HomeActivityAttributes"
+            aps["attributes"] = {"kind": d["kind"], "icon": d["icon"]}
+            alert: dict[str, Any] = {"title": d["title"], "body": d.get("detail") or ""}
+            if d["sound"]:
+                alert["sound"] = "default"
+            aps["alert"] = alert
+            if d.get("ends"):
+                aps["stale-date"] = int(d["ends"].timestamp())
+        if d["action"] == "end":
+            aps["dismissal-date"] = now + d["dismiss"]
+        topic = f"{hub.apns.topic}.push-type.liveactivity"
+
+        sent, failed, changed = 0, [], False
+        for _, dev in _targets(d.get("person")):
+            token = dev.get("start_token") if d["action"] == "start" else dev.get("activity_tokens", {}).get(d["kind"])
+            if not token:
+                failed.append({"device": dev.get("name"), "reason": "no token yet"})
+                continue
+            res = await hub.apns.send(token, {"aps": aps}, sandbox=dev["sandbox"], push_type="liveactivity", topic=topic)
+            if res.ok:
+                sent += 1
+                if d["action"] == "end":
+                    dev.get("activity_tokens", {}).pop(d["kind"], None)
+                    changed = True
+            else:
+                _LOGGER.warning("APNs refused a live activity for %s: %s %s", dev.get("name"), res.status, res.reason)
+                failed.append({"device": dev.get("name"), "reason": res.reason or str(res.status)})
+        if changed:
+            await hub.save()
+        return {"sent": sent, "failed": failed}
+
     async def action(call: ServiceCall) -> None:
         data = {"action": call.data["action"], "source": DOMAIN}
         if call.data.get("tag"):
@@ -226,6 +328,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 "user": user.name if user else None,
                 "environment": "sandbox" if dev.get("sandbox") else "production",
                 "registered": time.strftime("%Y-%m-%d %H:%M", time.localtime(dev.get("updated", 0))),
+                "live_activities": bool(dev.get("start_token")),
             })
         return {"devices": out}
 
@@ -234,11 +337,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.services.async_register(DOMAIN, "notify", notify, NOTIFY_SCHEMA, supports_response=SupportsResponse.OPTIONAL)
     hass.services.async_register(DOMAIN, "action", action, ACTION_SERVICE_SCHEMA)
     hass.services.async_register(DOMAIN, "devices", devices, vol.Schema({}), supports_response=SupportsResponse.ONLY)
+    hass.services.async_register(DOMAIN, "activity_register", activity_register, ACTIVITY_REGISTER_SCHEMA)
+    hass.services.async_register(DOMAIN, "live_activity", live_activity, LIVE_ACTIVITY_SCHEMA,
+                                 supports_response=SupportsResponse.OPTIONAL)
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    for service in ("register", "unregister", "notify", "action", "devices"):
+    for service in ("register", "unregister", "notify", "action", "devices", "activity_register", "live_activity"):
         hass.services.async_remove(DOMAIN, service)
     await entry.runtime_data.apns.close()
     return True

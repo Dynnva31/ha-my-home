@@ -1,13 +1,17 @@
 {
   "domain": "my_home",
   "name": "My Home",
-  "codeowners": ["@Dynnva31"],
+  "codeowners": [
+    "@Dynnva31"
+  ],
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/Dynnva31/home-ios",
   "integration_type": "service",
   "iot_class": "cloud_push",
-  "requirements": ["h2>=4.1.0"],
+  "requirements": [
+    "h2>=4.1.0"
+  ],
   "single_config_entry": true,
-  "version": "1.0.0"
+  "version": "1.1.0"
 }

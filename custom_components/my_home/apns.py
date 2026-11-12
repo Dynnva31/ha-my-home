@@ -83,10 +83,10 @@ class APNs:
         return self._jwt
 
     async def send(self, device_token: str, payload: dict, *, sandbox: bool, push_type: str = "alert",
-                   priority: int = 10, collapse_id: str | None = None) -> Result:
+                   priority: int = 10, collapse_id: str | None = None, topic: str | None = None) -> Result:
         headers = {
             "authorization": f"bearer {self._token()}",
-            "apns-topic": self.topic,
+            "apns-topic": topic or self.topic,
             "apns-push-type": push_type,
             "apns-priority": str(priority),
         }

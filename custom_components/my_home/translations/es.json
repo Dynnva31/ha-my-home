@@ -121,6 +121,14 @@
     "devices": {
       "name": "iPhones registrados",
       "description": "Lista los iPhones que reciben avisos."
+    },
+    "activity_register": {
+      "name": "Registrar Live Activities",
+      "description": "Lo usa la app My Home."
+    },
+    "live_activity": {
+      "name": "Live Activity",
+      "description": "Inicia, actualiza o termina una Live Activity (pantalla de bloqueo, Dynamic Island, CarPlay)."
     }
   }
 }
