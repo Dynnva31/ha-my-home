@@ -121,6 +121,7 @@ class Hub:
         self.apns = apns
         self.store: Store[dict[str, Any]] = Store(hass, STORAGE_VERSION, STORAGE_KEY, private=True)
         self.devices: dict[str, dict[str, Any]] = {}
+        self.starts: dict[str, int] = {}
 
     async def load(self) -> None:
         data = await self.store.async_load() or {}
@@ -280,6 +281,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             state["tint"] = d["tint"]
         if d.get("ends"):
             state["ends"] = d["ends"].timestamp() - APPLE_EPOCH
+            # When it started, for the progress bar; kept so updates draw the same bar.
+            if d["action"] == "start":
+                hub.starts[d["kind"]] = now
+            state["starts"] = hub.starts.get(d["kind"], now) - APPLE_EPOCH
         aps: dict[str, Any] = {"timestamp": now, "event": d["action"], "content-state": state}
         if d["action"] == "start":
             aps["attributes-type"] = "HomeActivityAttributes"
