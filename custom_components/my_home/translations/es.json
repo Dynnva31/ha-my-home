@@ -65,6 +65,10 @@
         "actions": {
           "name": "Botones",
           "description": "Hasta 4: action, title, destructive, auth, foreground."
+        },
+        "fallback": {
+          "name": "Reserva con la app de Home Assistant",
+          "description": "Si esa persona aún no tiene My Home (o no se le puede alcanzar), se lo manda por la app de Home Assistant."
         }
       }
     },

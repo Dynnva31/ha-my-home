@@ -74,6 +74,9 @@ NOTIFY_SCHEMA = vol.Schema(
         vol.Optional("level", default="active"): vol.In(LEVELS),
         vol.Optional("sound", default=True): cv.boolean,
         vol.Optional("actions", default=[]): vol.All(cv.ensure_list, [ACTION_SCHEMA], vol.Length(max=4)),
+        # Someone without My Home yet (or whose phone could not be reached)
+        # still gets the notice, through the Home Assistant companion app.
+        vol.Optional("fallback", default=True): cv.boolean,
     }
 )
 
@@ -190,6 +193,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def notify(call: ServiceCall) -> ServiceResponse:
         d = call.data
         targets = list(hub.devices.items())
+        people = d.get("person") or [st.entity_id for st in hass.states.async_all("person")]
         if d.get("person"):
             users = set()
             for pid in d["person"]:
@@ -219,6 +223,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         collapse = hashlib.sha256(d["tag"].encode()).hexdigest()[:32] if d.get("tag") else None
 
         sent, failed, changed = 0, [], False
+        reached: set[str] = set()
         for dev_id, dev in targets:
             payload = {"aps": aps, "v": 1, "e": encrypt(dev["key"], secret)}
             res = await hub.apns.send(dev["token"], payload, sandbox=dev["sandbox"], collapse_id=collapse,
@@ -231,6 +236,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     changed, res = True, retry
             if res.ok:
                 sent += 1
+                reached.add(dev.get("user_id"))
             elif res.gone:
                 hub.devices.pop(dev_id, None)
                 changed = True
@@ -240,7 +246,54 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 failed.append({"device": dev.get("name"), "reason": res.reason or str(res.status)})
         if changed:
             await hub.save()
-        return {"sent": sent, "failed": failed}
+
+        fallback = []
+        if d["fallback"]:
+            for pid in people:
+                st = hass.states.get(pid)
+                if not st or (st.attributes.get("user_id") and st.attributes["user_id"] in reached):
+                    continue
+                svc = _companion(st)
+                if not svc:
+                    continue
+                try:
+                    await hass.services.async_call("notify", svc, _companion_data(d), blocking=True, context=call.context)
+                    fallback.append(pid)
+                except HomeAssistantError as err:
+                    _LOGGER.warning("Companion app fallback for %s failed: %s", pid, err)
+                    failed.append({"device": svc, "reason": str(err)})
+        return {"sent": sent + len(fallback), "failed": failed, "fallback": fallback}
+
+    def _companion(person) -> str | None:
+        """notify.mobile_app_<phone> of a person's tracked iPhone, if the companion app is installed."""
+        for tracker in person.attributes.get("device_trackers") or []:
+            name = "mobile_app_" + tracker.split(".", 1)[-1]
+            if hass.services.has_service("notify", name):
+                return name
+        return None
+
+    def _companion_data(d) -> dict[str, Any]:
+        """The same notice in the companion app's terms (buttons fire the same event)."""
+        push: dict[str, Any] = {"interruption-level": d["level"]}
+        if not d["sound"]:
+            push["sound"] = "none"
+        extra: dict[str, Any] = {"push": push}
+        if d.get("subtitle"):
+            extra["subtitle"] = d["subtitle"]
+        if d.get("thread"):
+            extra["group"] = d["thread"]
+        if d.get("tag"):
+            extra["tag"] = d["tag"]
+        if d["actions"]:
+            extra["actions"] = [
+                {"action": a["action"], "title": a["title"], "destructive": a["destructive"],
+                 "authenticationRequired": a["auth"], "activationMode": "foreground" if a["foreground"] else "background"}
+                for a in d["actions"]
+            ]
+        out: dict[str, Any] = {"message": d["message"], "data": extra}
+        if d.get("title"):
+            out["title"] = d["title"]
+        return out
 
     def _targets(person: list[str] | None) -> list[tuple[str, dict[str, Any]]]:
         targets = list(hub.devices.items())

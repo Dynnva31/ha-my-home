@@ -65,6 +65,10 @@
         "actions": {
           "name": "Buttons",
           "description": "Up to 4: action, title, destructive, auth, foreground."
+        },
+        "fallback": {
+          "name": "Companion app fallback",
+          "description": "Without My Home (or unreachable), send it through the Home Assistant app."
         }
       }
     },

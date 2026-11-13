@@ -38,6 +38,10 @@ notify:
     actions:
       selector:
         object:
+    fallback:
+      default: true
+      selector:
+        boolean:
 register:
   fields:
     device_id:
