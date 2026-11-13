@@ -80,6 +80,13 @@ NOTIFY_SCHEMA = vol.Schema(
     }
 )
 
+BADGE_SCHEMA = vol.Schema(
+    {
+        vol.Required("count"): vol.All(vol.Coerce(int), vol.Range(min=0, max=999)),
+        vol.Optional("person"): cv.entity_ids,
+    }
+)
+
 ACTION_SERVICE_SCHEMA = vol.Schema(
     {
         vol.Required("action"): cv.string,
@@ -306,6 +313,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             targets = [(k, v) for k, v in targets if v.get("user_id") in users]
         return targets
 
+    async def badge(call: ServiceCall) -> ServiceResponse:
+        """The number on the app's icon (things to do at home). Only the number
+        travels: no text, nothing else Apple could read."""
+        count = call.data["count"]
+        sent, changed = 0, False
+        for dev_id, dev in _targets(call.data.get("person")):
+            payload = {"aps": {"badge": count}}
+            res = await hub.apns.send(dev["token"], payload, sandbox=dev["sandbox"], priority=5,
+                                      collapse_id="badge")
+            if res.ok:
+                sent += 1
+            elif res.gone:
+                hub.devices.pop(dev_id, None)
+                changed = True
+            else:
+                _LOGGER.warning("APNs refused a badge for %s: %s %s", dev.get("name"), res.status, res.reason)
+        if changed:
+            await hub.save()
+        return {"sent": sent}
+
     async def activity_register(call: ServiceCall) -> None:
         """The app hands over its Live Activity tokens (start, and one per running activity)."""
         dev = hub.devices.get(call.data["device_id"])
@@ -394,6 +421,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.services.async_register(DOMAIN, "unregister", unregister, UNREGISTER_SCHEMA)
     hass.services.async_register(DOMAIN, "notify", notify, NOTIFY_SCHEMA, supports_response=SupportsResponse.OPTIONAL)
     hass.services.async_register(DOMAIN, "action", action, ACTION_SERVICE_SCHEMA)
+    hass.services.async_register(DOMAIN, "badge", badge, BADGE_SCHEMA, supports_response=SupportsResponse.OPTIONAL)
     hass.services.async_register(DOMAIN, "devices", devices, vol.Schema({}), supports_response=SupportsResponse.ONLY)
     hass.services.async_register(DOMAIN, "activity_register", activity_register, ACTIVITY_REGISTER_SCHEMA)
     hass.services.async_register(DOMAIN, "live_activity", live_activity, LIVE_ACTIVITY_SCHEMA,

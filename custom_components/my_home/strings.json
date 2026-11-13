@@ -133,6 +133,20 @@
     "live_activity": {
       "name": "Live Activity",
       "description": "Start, update or end a Live Activity (lock screen, Dynamic Island, CarPlay)."
+    },
+    "badge": {
+      "name": "Set icon badge",
+      "description": "Number on the My Home app icon (things to do at home). Only the number is sent.",
+      "fields": {
+        "count": {
+          "name": "Count",
+          "description": "Number to show; 0 clears it."
+        },
+        "person": {
+          "name": "Person",
+          "description": "Only these people's phones (all if empty)."
+        }
+      }
     }
   }
 }

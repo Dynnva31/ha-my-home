@@ -133,6 +133,20 @@
     "live_activity": {
       "name": "Live Activity",
       "description": "Inicia, actualiza o termina una Live Activity (pantalla de bloqueo, Dynamic Island, CarPlay)."
+    },
+    "badge": {
+      "name": "Número en el icono",
+      "description": "Número en el icono de My Home (cosas que hacer en casa). Solo viaja el número.",
+      "fields": {
+        "count": {
+          "name": "Número",
+          "description": "Número a mostrar; 0 lo quita."
+        },
+        "person": {
+          "name": "Persona",
+          "description": "Solo los iPhone de estas personas (todos si se deja vacío)."
+        }
+      }
     }
   }
 }

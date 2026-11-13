@@ -138,3 +138,18 @@ live_activity:
           min: 0
           max: 14400
           unit_of_measurement: s
+
+badge:
+  fields:
+    count:
+      required: true
+      example: 2
+      selector:
+        number:
+          min: 0
+          max: 999
+    person:
+      selector:
+        entity:
+          domain: person
+          multiple: true
