@@ -67,6 +67,10 @@ NOTIFY_SCHEMA = vol.Schema(
         vol.Required("message"): cv.string,
         vol.Optional("title"): cv.string,
         vol.Optional("subtitle"): cv.string,
+        # SF Symbol drawn as a small coloured tile beside the text (e.g. "leaf.fill").
+        vol.Optional("icon"): vol.All(cv.string, vol.Length(max=60)),
+        # "red", "orange", "yellow", "green", "blue", "cyan", "purple", "gray" or "#RRGGBB".
+        vol.Optional("color"): vol.All(cv.string, vol.Length(max=10)),
         vol.Optional("person"): cv.entity_ids,
         vol.Optional("open"): cv.string,
         vol.Optional("thread"): cv.string,
@@ -210,7 +214,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             targets = [(k, v) for k, v in targets if v.get("user_id") in users]
 
         secret = {"b": d["message"]}
-        for src, dst in (("title", "t"), ("subtitle", "s"), ("open", "o"), ("thread", "th"), ("tag", "tag")):
+        for src, dst in (("title", "t"), ("subtitle", "s"), ("open", "o"), ("thread", "th"), ("tag", "tag"), ("icon", "i"), ("color", "c")):
             if d.get(src):
                 secret[dst] = d[src]
         if d["actions"]:

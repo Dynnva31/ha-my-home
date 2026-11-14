@@ -69,6 +69,14 @@
         "fallback": {
           "name": "Companion app fallback",
           "description": "Without My Home (or unreachable), send it through the Home Assistant app."
+        },
+        "icon": {
+          "name": "Icon",
+          "description": "SF Symbol shown beside the text (e.g. leaf.fill)."
+        },
+        "color": {
+          "name": "Color",
+          "description": "red, orange, yellow, green, blue, cyan, purple, gray or #RRGGBB."
         }
       }
     },

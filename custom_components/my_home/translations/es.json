@@ -69,6 +69,14 @@
         "fallback": {
           "name": "Reserva con la app de Home Assistant",
           "description": "Si esa persona aún no tiene My Home (o no se le puede alcanzar), se lo manda por la app de Home Assistant."
+        },
+        "icon": {
+          "name": "Icono",
+          "description": "Símbolo SF que se ve junto al texto (p. ej. leaf.fill)."
+        },
+        "color": {
+          "name": "Color",
+          "description": "red, orange, yellow, green, blue, cyan, purple, gray o #RRGGBB."
         }
       }
     },

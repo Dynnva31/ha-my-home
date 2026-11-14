@@ -11,6 +11,14 @@ notify:
     subtitle:
       selector:
         text:
+    icon:
+      example: leaf.fill
+      selector:
+        text:
+    color:
+      example: green
+      selector:
+        text:
     person:
       selector:
         entity:
